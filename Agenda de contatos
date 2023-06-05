@@ -182,7 +182,7 @@ void removerContato(struct Agenda *agenda) {
     if (contatoEncontrado) {
         printf("Contato removido com sucesso.\n");
     } else {
-        printf("Contato não encontrado.\n");
+        printf("Contato nao encontrado.\n");
     }
 }
 
@@ -198,7 +198,7 @@ int main() {
         printf("3 - Editar Contato\n");
         printf("4 - Remover Contato\n");
         printf("0 - Sair\n");
-        printf("Escolha uma opção: ");
+        printf("Escolha uma opcao: ");
         scanf("%d", &opcao);
 
         switch (opcao) {
@@ -218,7 +218,7 @@ int main() {
                 printf("Saindo...\n");
                 break;
             default:
-                printf("Opção inválida.\n");
+                printf("Opcao inválida.\n");
                 break;
         }
     } while (opcao != 0);
