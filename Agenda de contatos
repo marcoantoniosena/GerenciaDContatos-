@@ -44,28 +44,48 @@ void adicionarContato(struct Agenda *agenda) {
     printf("Tipo de celular: ");
     scanf("%s", novoContato.tipoCelular.nome);
 
+    FILE *arquivo;
+    arquivo = fopen("contatos.txt", "a");
+    if (arquivo == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
+        return;
+    }
+
+    fprintf(arquivo, "%s;%s;%s;%s;%s\n", novoContato.nome, novoContato.telefone, novoContato.email,
+            novoContato.operadora.nome, novoContato.tipoCelular.nome);
+
+    fclose(arquivo);
+
     agenda->contatos[agenda->numContatos] = novoContato;
     agenda->numContatos++;
 
     printf("Contato adicionado com sucesso.\n");
 }
 
-void visualizarContatos(struct Agenda agenda) {
-    if (agenda.numContatos == 0) {
-        printf("Agenda vazia.\n");
+void visualizarContatos(struct Agenda *agenda) {
+    FILE *arquivo;
+    arquivo = fopen("contatos.txt", "r");
+    if (arquivo == NULL) {
+        printf("Erro ao abrir o arquivo.\n");
         return;
     }
 
     printf("Contatos:\n");
 
-    for (int i = 0; i < agenda.numContatos; i++) {
-        printf("Nome: %s\n", agenda.contatos[i].nome);
-        printf("Telefone: %s\n", agenda.contatos[i].telefone);
-        printf("Email: %s\n", agenda.contatos[i].email);
-        printf("Operadora: %s\n", agenda.contatos[i].operadora.nome);
-        printf("Tipo de celular: %s\n", agenda.contatos[i].tipoCelular.nome);
+    struct Contato contato;
+
+    while (fscanf(arquivo, "%[^;];%[^;];%[^;];%[^;];%[^\n]\n",
+                  contato.nome, contato.telefone, contato.email,
+                  contato.operadora.nome, contato.tipoCelular.nome) != EOF) {
+        printf("Nome: %s\n", contato.nome);
+        printf("Telefone: %s\n", contato.telefone);
+        printf("Email: %s\n", contato.email);
+        printf("Operadora: %s\n", contato.operadora.nome);
+        printf("Tipo de celular: %s\n", contato.tipoCelular.nome);
         printf("--------------------------\n");
     }
+
+    fclose(arquivo);
 }
 
 void editarContato(struct Agenda *agenda) {
@@ -78,26 +98,45 @@ void editarContato(struct Agenda *agenda) {
     printf("Digite o nome do contato que deseja editar: ");
     scanf("%s", nomeBusca);
 
-    for (int i = 0; i < agenda->numContatos; i++) {
-        if (strcmp(agenda->contatos[i].nome, nomeBusca) == 0) {
-            printf("Digite os novos dados para o contato:\n");
-            printf("Nome: ");
-            scanf("%s", agenda->contatos[i].nome);
-            printf("Telefone: ");
-            scanf("%s", agenda->contatos[i].telefone);
-            printf("Email: ");
-            scanf("%s", agenda->contatos[i].email);
-            printf("Operadora: ");
-            scanf("%s", agenda->contatos[i].operadora.nome);
-            printf("Tipo de celular: ");
-            scanf("%s", agenda->contatos[i].tipoCelular.nome);
+    FILE *arquivoEntrada, *arquivoSaida;
+    arquivoEntrada = fopen("contatos.txt", "r");
+    arquivoSaida = fopen("temp.txt", "w");
 
-            printf("Contato editado com sucesso.\n");
-            return;
-        }
+    if (arquivoEntrada == NULL || arquivoSaida == NULL) {
+        printf("Erro ao abrir os arquivos.\n");
+        return;
     }
 
-    printf("Contato não encontrado.\n");
+    struct Contato contato;
+
+    while (fscanf(arquivoEntrada, "%[^;];%[^;];%[^;];%[^;];%[^\n]\n",
+                  contato.nome, contato.telefone, contato.email,
+                  contato.operadora.nome, contato.tipoCelular.nome) != EOF) {
+        if (strcmp(contato.nome, nomeBusca) == 0) {
+            printf("Digite os novos dados para o contato:\n");
+            printf("Nome: ");
+            scanf("%s", contato.nome);
+            printf("Telefone: ");
+            scanf("%s", contato.telefone);
+            printf("Email: ");
+            scanf("%s", contato.email);
+            printf("Operadora: ");
+            scanf("%s", contato.operadora.nome);
+            printf("Tipo de celular: ");
+            scanf("%s", contato.tipoCelular.nome);
+        }
+
+        fprintf(arquivoSaida, "%s;%s;%s;%s;%s\n", contato.nome, contato.telefone, contato.email,
+                contato.operadora.nome, contato.tipoCelular.nome);
+    }
+
+    fclose(arquivoEntrada);
+    fclose(arquivoSaida);
+
+    remove("contatos.txt");
+    rename("temp.txt", "contatos.txt");
+
+    printf("Contato editado com sucesso.\n");
 }
 
 void removerContato(struct Agenda *agenda) {
@@ -110,20 +149,41 @@ void removerContato(struct Agenda *agenda) {
     printf("Digite o nome do contato que deseja remover: ");
     scanf("%s", nomeBusca);
 
-    for (int i = 0; i < agenda->numContatos; i++) {
-        if (strcmp(agenda->contatos[i].nome, nomeBusca) == 0) {
-            for (int j = i; j < agenda->numContatos - 1; j++) {
-                agenda->contatos[j] = agenda->contatos[j + 1];
-            }
+    FILE *arquivoEntrada, *arquivoSaida;
+    arquivoEntrada = fopen("contatos.txt", "r");
+    arquivoSaida = fopen("temp.txt", "w");
 
-            agenda->numContatos--;
+    if (arquivoEntrada == NULL || arquivoSaida == NULL) {
+        printf("Erro ao abrir os arquivos.\n");
+        return;
+    }
 
-            printf("Contato removido com sucesso.\n");
-            return;
+    struct Contato contato;
+
+    int contatoEncontrado = 0;
+
+    while (fscanf(arquivoEntrada, "%[^;];%[^;];%[^;];%[^;];%[^\n]\n",
+                  contato.nome, contato.telefone, contato.email,
+                  contato.operadora.nome, contato.tipoCelular.nome) != EOF) {
+        if (strcmp(contato.nome, nomeBusca) == 0) {
+            contatoEncontrado = 1;
+        } else {
+            fprintf(arquivoSaida, "%s;%s;%s;%s;%s\n", contato.nome, contato.telefone, contato.email,
+                    contato.operadora.nome, contato.tipoCelular.nome);
         }
     }
 
-    printf("Contato não encontrado.\n");
+    fclose(arquivoEntrada);
+    fclose(arquivoSaida);
+
+    remove("contatos.txt");
+    rename("temp.txt", "contatos.txt");
+
+    if (contatoEncontrado) {
+        printf("Contato removido com sucesso.\n");
+    } else {
+        printf("Contato não encontrado.\n");
+    }
 }
 
 int main() {
@@ -146,7 +206,7 @@ int main() {
                 adicionarContato(&minhaAgenda);
                 break;
             case 2:
-                visualizarContatos(minhaAgenda);
+                visualizarContatos(&minhaAgenda);
                 break;
             case 3:
                 editarContato(&minhaAgenda);
