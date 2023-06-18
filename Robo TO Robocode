@@ -1,0 +1,85 @@
+import robocode.*;
+
+public class MeuRoboAvancado extends AdvancedRobot {
+  private boolean isMovingForward; // Indica se o robô está se movendo para frente
+  
+  public void run() {
+    setAdjustRadarForRobotTurn(true); // Ajusta o radar para girar independentemente do robô
+    setAdjustGunForRobotTurn(true); // Ajusta a arma para girar independentemente do robô
+    isMovingForward = true;
+    
+    while (true) {
+      if (isMovingForward) {
+        setAhead(Double.POSITIVE_INFINITY); // Move para frente indefinidamente
+      } else {
+        setBack(Double.POSITIVE_INFINITY); // Move para trás indefinidamente
+      }
+      
+      execute(); // Executa os comandos pendentes
+      
+      // Alterna a direção de movimento a cada 50 turnos
+      if (getTime() % 50 == 0) {
+        isMovingForward = !isMovingForward;
+        if (isMovingForward) {
+          setAhead(Double.POSITIVE_INFINITY);
+        } else {
+          setBack(Double.POSITIVE_INFINITY);
+        }
+      }
+    }
+  }
+  
+  public void onScannedRobot(ScannedRobotEvent event) {
+    double enemyDistance = event.getDistance();
+    double enemyBearing = event.getBearing();
+    double enemyHeading = event.getHeading();
+    
+    // Gira o robô e a arma em direção ao inimigo
+    setTurnRight(enemyBearing);
+    setTurnGunRight(normalizeBearing(getHeading() - getGunHeading() + enemyBearing));
+    
+    // Calcula a potência do tiro com base na distância do inimigo
+    double bulletPower = Math.min(3.0, getEnergy() / 2);
+    
+    // Ajusta a mira para antecipar o movimento do inimigo
+    double bulletSpeed = 20 - 3 * bulletPower;
+    long time = (long) (enemyDistance / bulletSpeed);
+    double predictedEnemyHeading = enemyHeading + getTurnRemaining();
+    double predictedEnemyVelocity = event.getVelocity() * Math.sin(Math.toRadians(event.getHeading() - predictedEnemyHeading));
+    double predictedEnemyX = getX() + enemyDistance * Math.sin(Math.toRadians(getHeading() + enemyBearing));
+    double predictedEnemyY = getY() + enemyDistance * Math.cos(Math.toRadians(getHeading() + enemyBearing));
+    double predictedEnemyXAfter = predictedEnemyX + predictedEnemyVelocity * time * Math.sin(Math.toRadians(predictedEnemyHeading));
+    double predictedEnemyYAfter = predictedEnemyY + predictedEnemyVelocity * time * Math.cos(Math.toRadians(predictedEnemyHeading));
+    double predictedEnemyDistance = Math.sqrt(Math.pow(predictedEnemyXAfter - getX(), 2) + Math.pow(predictedEnemyYAfter - getY(), 2));
+    double predictedEnemyBearing = normalizeBearing(Math.toDegrees(Math.atan2(predictedEnemyXAfter - getX(), predictedEnemyYAfter - getY())) - getHeading());
+    setTurnGunRight(normalizeBearing(getHeading() - getGunHeading() + predictedEnemyBearing));
+    
+    // Dispara um tiro com a potência calculada
+    setFire(bulletPower);
+
+    
+    // Bloqueia o radar no inimigo
+    setTurnRadarRight(normalizeBearing(enemyBearing - getRadarHeading()) * 2);
+  }
+  
+  public void onHitByBullet(HitByBulletEvent event) {
+    // Gira o robô aleatoriamente para se esquivar da bala
+    setTurnRight(90);
+    setAhead(100);
+  }
+  
+  public void onHitWall(HitWallEvent event) {
+    // Gira o robô 180 graus ao atingir uma parede
+    setTurnRight(180);
+    setAhead(100);
+  }
+  
+  // Normaliza o ângulo para um valor entre -180 e 180 graus
+  private double normalizeBearing(double angle) {
+    while (angle > 180)
+      angle -= 360;
+    while (angle < -180)
+      angle += 360;
+    return angle;
+  }
+}
